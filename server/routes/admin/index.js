@@ -13,7 +13,7 @@ module.exports = (app) => {
     res.send(model);
   });
   router.get("/categories", async (req, res) => {
-    const items = await Category.find();
+    const items = await Category.find().populate("parent");
     console.log(items);
     res.send(items);
   });
