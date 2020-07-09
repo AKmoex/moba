@@ -1,34 +1,43 @@
 module.exports = (app) => {
   const express = require("express");
-  const router = express.Router();
-  const Category = require("../../models/Category");
+  const router = express.Router({
+    mergeParams: true,
+  });
 
-  router.post("/categories", async (req, res) => {
-    const model = await Category.create(req.body);
-    res.send(model);
-    console.log(model);
-  });
-  router.put("/categories/:id", async (req, res) => {
-    const model = await Category.findByIdAndUpdate(req.params.id, req.body);
+  router.post("/", async (req, res) => {
+    const model = await req.Model.create(req.body);
     res.send(model);
   });
-  router.get("/categories", async (req, res) => {
-    const items = await Category.find().populate("parent");
-    console.log(items);
+  router.put("/:id", async (req, res) => {
+    const model = await req.Model.findByIdAndUpdate(req.params.id, req.body);
+    res.send(model);
+  });
+  router.get("/", async (req, res) => {
+    const items = await req.Model.find().populate("parent");
     res.send(items);
   });
-  router.delete("/categories/:id", async (req, res) => {
-    await Category.findByIdAndDelete(req.params.id, res.body);
+  router.delete("/:id", async (req, res) => {
+    await req.Model.findByIdAndDelete(req.params.id, res.body);
 
     res.send({
       success: true,
     });
   });
 
-  router.get("/categories/:id", async (req, res) => {
-    const model = await Category.findById(req.params.id);
+  router.get("/:id", async (req, res) => {
+    const model = await req.Model.findById(req.params.id);
     res.send(model);
   });
 
-  app.use("/admin/api", router);
+  app.use(
+    "/admin/api/rest/:resource",
+    async (req, res, next) => {
+      const modelName = require("inflection").classify(req.params.resource);
+      //const Model = require(`../../models/${modelName}`);
+      //不能是const，若是const则后面访问不到，应当挂载到req上
+      req.Model = require(`../../models/${modelName}`);
+      next();
+    },
+    router
+  );
 };
