@@ -13,7 +13,11 @@ module.exports = (app) => {
     res.send(model);
   });
   router.get("/", async (req, res) => {
-    const items = await req.Model.find().populate("parent");
+    let queryOptions = {};
+    if (req.Model.modelName == "Category") {
+      queryOptions.populate = "parent";
+    }
+    const items = await req.Model.find().setOptions(queryOptions);
     res.send(items);
   });
   router.delete("/:id", async (req, res) => {
