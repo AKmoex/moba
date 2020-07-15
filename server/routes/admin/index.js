@@ -24,7 +24,7 @@ module.exports = (app) => {
   });
 
   //资源列表
-  router.get("/", authMiddelware(), async (req, res) => {
+  router.get("/", async (req, res) => {
     let queryOptions = {};
     if (req.Model.modelName == "Category") {
       queryOptions.populate = "parent";
@@ -47,15 +47,25 @@ module.exports = (app) => {
     res.send(model);
   });
 
-  app.use("/admin/api/rest/:resource", resourceMiddleware(), router);
+  app.use(
+    "/admin/api/rest/:resource",
+    authMiddelware(),
+    resourceMiddleware(),
+    router
+  );
 
   const multer = require("multer");
   const upload = multer({ dest: __dirname + "/../../uploads" });
-  app.post("/admin/api/upload", upload.single("file"), async (req, res) => {
-    const file = req.file;
-    file.url = `http://localhost:3000/uploads/${file.filename}`;
-    res.send(file);
-  });
+  app.post(
+    "/admin/api/upload",
+    authMiddelware(),
+    upload.single("file"),
+    async (req, res) => {
+      const file = req.file;
+      file.url = `http://localhost:3000/uploads/${file.filename}`;
+      res.send(file);
+    }
+  );
   app.post("/admin/api/login", async (req, res) => {
     const { username, password } = req.body;
     const user = await AdminUser.findOne({
