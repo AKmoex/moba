@@ -1,5 +1,3 @@
-const { nextTick } = require("process");
-
 module.exports = (app) => {
   const express = require("express");
   const jwt = require("jsonwebtoken");
@@ -9,6 +7,9 @@ module.exports = (app) => {
   const router = express.Router({
     mergeParams: true,
   });
+
+  const authMiddelware = require("../../middleware/auth");
+  const resourceMiddleware = require("../../middleware/resource");
 
   //创建资源
   router.post("/", async (req, res) => {
@@ -23,30 +24,14 @@ module.exports = (app) => {
   });
 
   //资源列表
-  router.get(
-    "/",
-    async (req, res, next) => {
-      const token = String(req.headers.authorization || "")
-        .split(" ")
-        .pop();
-      assert(token, 401, "请先登录");
-      const { id } = jwt.verify(token, app.get("secret"));
-      assert(id, 401, "请先登录");
-
-      req.user = await AdminUser.findById(id);
-      assert(req.user, 401, "请先登录");
-
-      await next();
-    },
-    async (req, res) => {
-      let queryOptions = {};
-      if (req.Model.modelName == "Category") {
-        queryOptions.populate = "parent";
-      }
-      const items = await req.Model.find().setOptions(queryOptions);
-      res.send(items);
+  router.get("/", authMiddelware(), async (req, res) => {
+    let queryOptions = {};
+    if (req.Model.modelName == "Category") {
+      queryOptions.populate = "parent";
     }
-  );
+    const items = await req.Model.find().setOptions(queryOptions);
+    res.send(items);
+  });
 
   //删除资源
   router.delete("/:id", async (req, res) => {
@@ -62,17 +47,7 @@ module.exports = (app) => {
     res.send(model);
   });
 
-  app.use(
-    "/admin/api/rest/:resource",
-    async (req, res, next) => {
-      const modelName = require("inflection").classify(req.params.resource);
-      //const Model = require(`../../models/${modelName}`);
-      //不能是const，若是const则后面访问不到，应当挂载到req上
-      req.Model = require(`../../models/${modelName}`);
-      next();
-    },
-    router
-  );
+  app.use("/admin/api/rest/:resource", resourceMiddleware(), router);
 
   const multer = require("multer");
   const upload = multer({ dest: __dirname + "/../../uploads" });
